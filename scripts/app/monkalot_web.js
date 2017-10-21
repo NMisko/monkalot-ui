@@ -18,7 +18,6 @@ define(["./monkalot", "./ui"], function (monkalot, ui) {
          * Start controller, get username and set up cached data.
          */
         start: function() {
-            document.getElementById("id_token").innerHTML = id_token;
             this.ui.setup(this);
             let this_ = this;
             monkalot.getTwitchUsername(id_token).then(function(name) {

@@ -1,22 +1,27 @@
 /**
  * Module that abstracts monkalots REST interface
  */
-define(function () {
+define(["./ui"], function (ui) {
     let api = 'http://localhost:8081/';
+    let spin = ui.ui.spin;
 
     function postURL(url, args) {
         return new Promise(function(succeed, fail){
+            spin(true);
             let req = new XMLHttpRequest();
             req.open("POST", url, true);
             req.addEventListener("load", function() {
                 if (req.status < 400) {
                     //console.log("URL: " + url + " Successful request: " + req.responseText);
+                    spin(false);
                     succeed(req.responseText);
                 } else {
+                    spin(false);
                     fail(req.status, req.responseText);
                 }
             });
             req.addEventListener("error", function() {
+                spin(false);
                 fail(null, new Error("Network error"));
             });
             req.send(args);

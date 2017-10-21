@@ -33,18 +33,26 @@ define (function() {
         setBots: function (bots) {
             let botsElement = document.getElementById("bots");
             for (b of bots) {
-                let li = document.createElement("li");
-                let button = document.createElement("button");
-                button.innerHTML = b;
-                let this_ = this;
-                button.addEventListener("click", function (event) {
-                    let chosenBot = event.target.innerHTML;
-                    this_.setActiveBot(chosenBot);
-                    this_.controller.onBotChosen(chosenBot);
-                });
-                li.appendChild(button);
-                botsElement.appendChild(li);
+                let option = document.createElement("option");
+                let t = document.createTextNode(b);
+                option.appendChild(t);
+                botsElement.appendChild(option);
             }
+
+            // Select a random bot at first
+            let selectedBot = botsElement.options[botsElement.selectedIndex].text;
+            this.setActiveBot(selectedBot);
+            this.controller.onBotChosen(selectedBot);
+
+            // When another bot gets selected
+            let this_ = this;
+            botsElement.addEventListener("change", function () {
+                if (botsElement.selectedIndex !== -1) {
+                    let selectedBot = botsElement.options[botsElement.selectedIndex].text;
+                    this_.setActiveBot(selectedBot);
+                    this_.controller.onBotChosen(selectedBot);
+                }
+            });
         },
 
         /**
@@ -52,8 +60,8 @@ define (function() {
          * @param bot Active bot to display
          */
         setActiveBot: function (bot) {
-            let botName = document.getElementById("botname");
-            botName.innerHTML = bot;
+            // let botName = document.getElementById("botname");
+            // botName.innerHTML = bot;
         },
 
         /**
@@ -67,8 +75,9 @@ define (function() {
             }
             for (f of files) {
                 let li = document.createElement("li");
-                let button = document.createElement("button");
+                let button = document.createElement("a");
                 button.innerHTML = f;
+                button.className = "navButton";
                 let this_ = this;
                 button.addEventListener("click", function (event) {
                     this_.setActiveFile(event.target.innerHTML);
@@ -79,8 +88,7 @@ define (function() {
             }
             let contentElement = document.getElementById("content");
             contentElement.value = "";
-            let filename = document.getElementById("filename");
-            filename.innerHTML = "nothing";
+            this.setActiveFile("nothing");
         },
 
         /**
@@ -88,8 +96,8 @@ define (function() {
          * @param file File to display
          */
         setActiveFile: function (file) {
-            let filename = document.getElementById("filename");
-            filename.innerHTML = file;
+            // let filename = document.getElementById("filename");
+            // filename.innerHTML = file;
         },
 
         /**
@@ -100,9 +108,10 @@ define (function() {
             let contentElement = document.getElementById("content");
             contentElement.value = content;
             let saveButton = document.getElementById("save");
+            saveButton.disabled = false;
             let this_ = this;
             contentElement.addEventListener('input', function () {
-                saveButton.innerHTML = "Save";
+                this_.setSaved(false);
                 this_.controller.saveState();
             });
             saveButton.addEventListener("click", function () {
@@ -121,7 +130,7 @@ define (function() {
         setPause: function (isPaused) {
             let pauseS = "Paused";
             let pauseElement = document.getElementById("pause");
-            if (!isPaused) pauseS = "Unpaused";
+            if (!isPaused) pauseS = "Pause";
             pauseElement.innerHTML = pauseS;
         },
 
@@ -131,8 +140,26 @@ define (function() {
          */
         setSaved: function(isSaved) {
             let saveButton = document.getElementById("save");
-            if (isSaved) saveButton.innerHTML = "Saved";
-            else saveButton.innerHTML = "Save";
+            let resetButton = document.getElementById("reset");
+            if (isSaved) {
+                resetButton.disabled = true;
+                saveButton.innerHTML = "Saved";
+                saveButton.style.backgroundColor = "#7AC74F";
+            } else {
+                resetButton.disabled = false;
+                saveButton.innerHTML = "Save";
+                saveButton.style.backgroundColor = "#E87461";
+            }
+        },
+
+        /**
+         * Show the loading spinner
+         * @param toSpin Whether to spin or not to spin
+         */
+        spin: function(toSpin) {
+            let spinner = document.getElementById("spinner");
+            if (toSpin) spinner.style.visibility = 'visible';
+            else spinner.style.visibility = 'hidden';
         }
     };
     return {
