@@ -81,6 +81,11 @@ define (function() {
                 let this_ = this;
                 button.addEventListener("click", function (event) {
                     this_.setActiveFile(event.target.innerHTML);
+
+                    let oldFile = document.getElementById("selectedNavButton");
+                    if (oldFile) oldFile.removeAttribute('id');
+                    event.target.id = "selectedNavButton";
+
                     this_.controller.onFileChosen(event.target.innerHTML);
                 });
                 li.appendChild(button);
@@ -96,8 +101,8 @@ define (function() {
          * @param file File to display
          */
         setActiveFile: function (file) {
-            // let filename = document.getElementById("filename");
-            // filename.innerHTML = file;
+
+
         },
 
         /**
@@ -144,11 +149,13 @@ define (function() {
             if (isSaved) {
                 resetButton.disabled = true;
                 saveButton.innerHTML = "Saved";
-                saveButton.style.backgroundColor = "#7AC74F";
+                saveButton.className = "green";
+                saveButton.disabled = true;
             } else {
                 resetButton.disabled = false;
                 saveButton.innerHTML = "Save";
-                saveButton.style.backgroundColor = "#E87461";
+                saveButton.className = "red";
+                saveButton.disabled = false;
             }
         },
 
