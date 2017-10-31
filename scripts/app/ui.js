@@ -3,66 +3,208 @@
  */
 define (function() {
 
+    function selectAllContents(element) {
+        let range, selection;
+
+        // Select all text in new leaf.
+        // https://stackoverflow.com/a/14816523
+        if (window.getSelection && document.createRange) {
+            selection = window.getSelection();
+            range = document.createRange();
+            range.selectNodeContents(element);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        } else if (document.selection && document.body.createTextRange) {
+            range = document.body.createTextRange();
+            range.moveToElementText(element);
+            range.select();
+        }
+    }
+
     /**
      * DOMElement that displays an editable json.
      */
     class JsonBase extends HTMLElement {
+
         constructor() {
             super();
             this.shadow = this.attachShadow({mode: 'open'});
+            this.defaultText = "...";
         }
 
         setJson(json) {
-            let this_ = this;
             this.json = json;
+            let this_ = this;
+
+            // If this json is an array, enable adding and removing values
+            let isArray = JsonBase.isArray(json);
 
             for (let key in json) {
-                let div = document.createElement('div');
+
                 let val = json[key];
-                let t = document.createTextNode(key + ": ");
                 let sVal = JSON.stringify(val);
-                div.style.color = "grey";
-                div.style.cursor = "default";
-                this.shadow.appendChild(div);
-                div.appendChild(t);
 
-                // If value is either a string or a number (a leaf), make it editable and add it inline
-                if (/^".*"$/g.test(sVal) || /^[\d|.]*$/g.test(sVal)) {
-                    let leaf = document.createElement('span');
-                    leaf.innerText = sVal
-                        // remove first and last "
-                        .replace(/^"|"$/g, "")
-                        // replace all /" with "
-                        .replace(/\\"/g, "\"");
-                    leaf.contentEditable="true";
-                    leaf.addEventListener("input", function() {
-                        // Reverse the replacements
-                        this_.json[key] = JSON.parse('"' + leaf.innerText.replace(/"/g, "\\\"") + '"');
-                    });
-                    leaf.style.color = "black";
-                    leaf.style.cursor = "text";
-                    leaf.className = "test";
-                    div.appendChild(leaf);
+                // This value is a leaf if it starts and ends with " or is a digit
+                let isLeaf = /^".*"$/g.test(sVal) || /^[\d|.]*$/g.test(sVal);
 
-                // Else recursively add another json-base 50px to the left.
+                let keyDiv = this.newKey(key, isArray);
+                this.shadow.appendChild(keyDiv, isLeaf);
+
+                if (isLeaf) {
+                    keyDiv.appendChild(this.newLeaf(key, sVal));
                 } else {
-                    let subDiv = document.createElement('div');
-                    subDiv.style.marginLeft = "50px";
-
-                    let subJson = document.createElement('json-base');
-                    subJson.setJson(val);
-                    subJson.addEventListener("input", function() {
-                        this_.json[key] = subJson.getJson();
-                    });
-
-                    subDiv.appendChild(subJson);
-                    div.appendChild(subDiv);
+                    keyDiv.appendChild(this.newChild(key, val));
                 }
             }
+
+            // Adding and removing entries is only enabled for arrays
+            if(isArray) {
+                // Plus button adds a new leaf
+                let plusButton = document.createElement('button');
+                plusButton.textContent = "+";
+                plusButton.style.fontWeight = "bold";
+                plusButton.addEventListener("click", function() {
+                    this_.addNewCustomLeaf();
+                });
+                this.shadow.appendChild(plusButton);
+            }
+        }
+
+        /**
+         * Add a new key entry
+         * @param key The key value (must correspond exactly to the one in the json)
+         * @param deletable Whether this entry should have a [-] Button in front, which deletes it.
+         * @returns {Element} Return the entry
+         */
+        newKey(key, deletable = false) {
+            let this_ = this;
+            let div = document.createElement('div');
+            div.style.color = "grey";
+            div.style.cursor = "default";
+
+            // Add a [-] button in front of this key
+            if(deletable) {
+                let minusButton = document.createElement('button');
+                minusButton.textContent = "−";
+                minusButton.style.fontWeight = "bold";
+
+                minusButton.addEventListener("click", function() {
+                    let index = this_.json.indexOf(key);
+                    if(index === -1) {
+                        if (JsonBase.isInt(Number(key))) {
+                            index = key;
+                        } else {
+                            // Programmer needs to ensure the right key is passed.
+                            throw new DOMException("No key with that value exists.");
+                        }
+                    }
+                    this_.json.splice(index, 1);
+
+                    // Remove all current entries and set the json to the new one, which builds up the tree again.
+                    while (this_.shadow.firstChild) {
+                        this_.shadow.firstChild.remove();
+                    }
+                    this_.setJson(this_.json);
+                    let inputEvent = new Event("input", {bubbles:true, composed:true});
+                    this_.dispatchEvent(inputEvent);
+                });
+                div.appendChild(minusButton);
+            }
+
+            let t = document.createTextNode(key + ": ");
+            div.appendChild(t);
+            return div;
+        }
+
+        /**
+         * Adds a new child jsonBase
+         * @param key The key (necessary to propagate input changes)
+         * @param val Value which gets used to construct a new jsonBase
+         * @returns {Element} The new child
+         */
+        newChild(key, val) {
+            let this_ = this;
+            let subDiv = document.createElement('div');
+            subDiv.style.marginLeft = "50px";
+
+            let subJson = document.createElement('json-base');
+            subJson.setJson(val);
+            subJson.addEventListener("input", function() {
+                this_.json[key] = subJson.getJson();
+            });
+
+            subDiv.appendChild(subJson);
+            return subDiv;
+        }
+
+        /**
+         * Adds a new leaf
+         * @param key The key (necessary to propagate input changes)
+         * @param val Value displayed
+         * @returns {Element} The new leaf
+         */
+        newLeaf(key, val) {
+            let this_ = this;
+            let leaf = document.createElement('span');
+            leaf.innerText = val
+            // remove first and last "
+                .replace(/^"|"$/g, "")
+                // replace all /" with "
+                .replace(/\\"/g, "\"");
+            leaf.contentEditable="true";
+            leaf.addEventListener("input", function() {
+                // Reverse the replacements
+                this_.json[key] = JSON.parse('"' + leaf.innerText.replace(/"/g, "\\\"") + '"');
+            });
+            leaf.addEventListener("keydown", function(event) {
+                if(event.keyCode === 13 && JsonBase.isArray(this_.json)) {
+                    event.preventDefault();
+                    let leaf = this_.addNewCustomLeaf();
+
+                    leaf.focus();
+                    selectAllContents(leaf);
+                }
+            });
+            leaf.style.color = "black";
+            leaf.style.cursor = "text";
+            leaf.className = "test";
+
+            return leaf;
+        }
+
+        /**
+         * Adds a new user added leaf.
+         * @returns {Element} The new leaf
+         */
+        addNewCustomLeaf() {
+            let keyDiv = this.newKey(this.json.length, true);
+            this.shadow.insertBefore(keyDiv, this.shadow.lastChild);
+            let leaf = this.newLeaf(this.json.length, this.defaultText);
+            keyDiv.appendChild(leaf);
+            this.json[this.json.length] = this.defaultText;
+            let inputEvent = new Event("input", {bubbles:true, composed:true});
+            leaf.dispatchEvent(inputEvent);
+            return leaf;
         }
 
         getJson() {
             return this.json;
+        }
+
+        /**
+         * Checks whether a value is an int.
+         */
+        static isInt(value) {
+            return !isNaN(value) &&
+                parseInt(Number(value)) === value &&
+                !isNaN(parseInt(value, 10));
+        }
+
+        /**
+         * Checks whether the given variable is an array.
+         */
+        static isArray(variable) {
+            return Object.prototype.toString.call(variable) === '[object Array]'
         }
     }
 
@@ -178,8 +320,16 @@ define (function() {
             let saveButton = document.getElementById("save");
             saveButton.disabled = false;
             let this_ = this;
-            saveButton.addEventListener("click", function () {
+            saveButton.addEventListener("click", function() {
                 this_.controller.onFileSaved(this_.getContent());
+            });
+
+            // Save on ctrl+s
+            document.addEventListener("keydown", function(event) {
+                if(event.keyCode === 83 && (event.metaKey || event.ctrlKey)) {
+                    event.preventDefault();
+                    this_.controller.onFileSaved(this_.getContent());
+                }
             });
             let resetButton = document.getElementById("reset");
             resetButton.addEventListener("click", function () {
