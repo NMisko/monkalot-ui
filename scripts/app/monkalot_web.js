@@ -122,10 +122,10 @@ define(["./monkalot", "./ui"], function (monkalot, ui) {
          * Save the current state of the controller.
          */
         saveState: function() {
-            let contentElement = document.getElementById("content");
+            let content = this.ui.getContent();
             sessionStorage.setItem("bot", this.currentBot);
             sessionStorage.setItem("file", this.currentFile);
-            sessionStorage.setItem("content", contentElement.value);
+            sessionStorage.setItem("content", content);
         },
 
         /**
@@ -142,7 +142,8 @@ define(["./monkalot", "./ui"], function (monkalot, ui) {
     //---------------------
     // Load id_token, set up site.
     let id_token = null;
-    let url = window.location.protocol + "//" + window.location.hostname + ":" + window.location.port;
+
+    let url = window.location.href;
     let client_id = "2x318d1ydfpxo1jpyygahnd381o5wo";
 
     // Check if there is an id_token, if not, redirect to twitch to get it

@@ -12,7 +12,6 @@ define(["./ui"], function (ui) {
             req.open("POST", url, true);
             req.addEventListener("load", function() {
                 if (req.status < 400) {
-                    //console.log("URL: " + url + " Successful request: " + req.responseText);
                     spin(false);
                     succeed(req.responseText);
                 } else {

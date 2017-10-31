@@ -2,6 +2,73 @@
  * Module containing functions managing the user interface.
  */
 define (function() {
+
+    /**
+     * DOMElement that displays an editable json.
+     */
+    class JsonBase extends HTMLElement {
+        constructor() {
+            super();
+            this.shadow = this.attachShadow({mode: 'open'});
+        }
+
+        setJson(json) {
+            let this_ = this;
+            this.json = json;
+
+            for (let key in json) {
+                let div = document.createElement('div');
+                let val = json[key];
+                let t = document.createTextNode(key + ": ");
+                let sVal = JSON.stringify(val);
+                div.style.color = "grey";
+                div.style.cursor = "default";
+                this.shadow.appendChild(div);
+                div.appendChild(t);
+
+                // If value is either a string or a number (a leaf), make it editable and add it inline
+                if (/^".*"$/g.test(sVal) || /^[\d|.]*$/g.test(sVal)) {
+                    let leaf = document.createElement('span');
+                    leaf.innerText = sVal
+                        // remove first and last "
+                        .replace(/^"|"$/g, "")
+                        // replace all /" with "
+                        .replace(/\\"/g, "\"");
+                    leaf.contentEditable="true";
+                    leaf.addEventListener("input", function() {
+                        // Reverse the replacements
+                        this_.json[key] = JSON.parse('"' + leaf.innerText.replace(/"/g, "\\\"") + '"');
+                    });
+                    leaf.style.color = "black";
+                    leaf.style.cursor = "text";
+                    leaf.className = "test";
+                    div.appendChild(leaf);
+
+                // Else recursively add another json-base 50px to the left.
+                } else {
+                    let subDiv = document.createElement('div');
+                    subDiv.style.marginLeft = "50px";
+
+                    let subJson = document.createElement('json-base');
+                    subJson.setJson(val);
+                    subJson.addEventListener("input", function() {
+                        this_.json[key] = subJson.getJson();
+                    });
+
+                    subDiv.appendChild(subJson);
+                    div.appendChild(subDiv);
+                }
+            }
+        }
+
+        getJson() {
+            return this.json;
+        }
+    }
+
+    // Define the new element
+    customElements.define('json-base', JsonBase);
+
     const ui = {
         controller: null,
 
@@ -91,8 +158,6 @@ define (function() {
                 li.appendChild(button);
                 filesElement.appendChild(li);
             }
-            let contentElement = document.getElementById("content");
-            contentElement.value = "";
             this.setActiveFile("nothing");
         },
 
@@ -110,22 +175,30 @@ define (function() {
          * @param content Content to display
          */
         setContent: function (content) {
-            let contentElement = document.getElementById("content");
-            contentElement.value = content;
             let saveButton = document.getElementById("save");
             saveButton.disabled = false;
             let this_ = this;
-            contentElement.addEventListener('input', function () {
-                this_.setSaved(false);
-                this_.controller.saveState();
-            });
             saveButton.addEventListener("click", function () {
-                this_.controller.onFileSaved(contentElement.value);
+                this_.controller.onFileSaved(this_.getContent());
             });
             let resetButton = document.getElementById("reset");
             resetButton.addEventListener("click", function () {
                 this_.controller.onReset();
             });
+
+            let j = document.createElement('json-base');
+            j.id = 'json-content';
+            let contentWrap = document.getElementById('content-wrap');
+            while (contentWrap.hasChildNodes()) {
+                contentWrap.removeChild(contentWrap.lastChild);
+            }
+            contentWrap.appendChild(j);
+            contentWrap.addEventListener("input", function() {
+                this_.setSaved(false);
+                this_.controller.saveState();
+            });
+            let json = JSON.parse(content);
+            j.setJson(json);
         },
 
         /**
@@ -137,6 +210,15 @@ define (function() {
             let pauseElement = document.getElementById("pause");
             if (!isPaused) pauseS = "Pause";
             pauseElement.innerHTML = pauseS;
+        },
+
+        /**
+         * Return the currently entered content.
+         * @returns A string of the current content
+         */
+        getContent: function() {
+            let content = document.getElementById('json-content');
+            return JSON.stringify(content.getJson());
         },
 
         /**
