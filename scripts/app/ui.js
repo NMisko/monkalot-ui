@@ -87,26 +87,11 @@ define (function() {
                 let minusButton = document.createElement('button');
                 minusButton.textContent = "−";
                 minusButton.style.fontWeight = "bold";
+                minusButton.style.marginRight = "10px";
+
 
                 minusButton.addEventListener("click", function() {
-                    let index = this_.json.indexOf(key);
-                    if(index === -1) {
-                        if (JsonBase.isInt(Number(key))) {
-                            index = key;
-                        } else {
-                            // Programmer needs to ensure the right key is passed.
-                            throw new DOMException("No key with that value exists.");
-                        }
-                    }
-                    this_.json.splice(index, 1);
-
-                    // Remove all current entries and set the json to the new one, which builds up the tree again.
-                    while (this_.shadow.firstChild) {
-                        this_.shadow.firstChild.remove();
-                    }
-                    this_.setJson(this_.json);
-                    let inputEvent = new Event("input", {bubbles:true, composed:true});
-                    this_.dispatchEvent(inputEvent);
+                    this_.removeEntry(key);
                 });
                 div.appendChild(minusButton);
             }
@@ -157,18 +142,19 @@ define (function() {
                 this_.json[key] = JSON.parse('"' + leaf.innerText.replace(/"/g, "\\\"") + '"');
             });
             leaf.addEventListener("keydown", function(event) {
+                // Enter adds a new entry
                 if(event.keyCode === 13 && JsonBase.isArray(this_.json)) {
                     event.preventDefault();
-                    let leaf = this_.addNewCustomLeaf();
-
-                    leaf.focus();
-                    selectAllContents(leaf);
+                    this_.addNewCustomLeaf();
+                // Backspace on empty entry removes it
+                } else if(event.keyCode === 8 && leaf.innerText === "" && JsonBase.isArray(this_.json)) {
+                    event.preventDefault();
+                    this_.removeEntry(key);
                 }
             });
+
             leaf.style.color = "black";
             leaf.style.cursor = "text";
-            leaf.className = "test";
-
             return leaf;
         }
 
@@ -184,7 +170,36 @@ define (function() {
             this.json[this.json.length] = this.defaultText;
             let inputEvent = new Event("input", {bubbles:true, composed:true});
             leaf.dispatchEvent(inputEvent);
+            leaf.focus();
+            selectAllContents(leaf);
             return leaf;
+        }
+
+        removeEntry(key) {
+            let index = this.json.indexOf(key);
+            if(index === -1) {
+                if (JsonBase.isInt(Number(key))) {
+                    index = key;
+                } else {
+                    // Programmer needs to ensure the right key is passed.
+                    throw new DOMException("No key with that value exists.");
+                }
+            }
+            this.json.splice(index, 1);
+
+            // Remove all current entries and set the json to the new one, which builds up the tree again.
+            while (this.shadow.firstChild) {
+                this.shadow.firstChild.remove();
+            }
+            this.setJson(this.json);
+            let inputEvent = new Event("input", {bubbles:true, composed:true});
+            this.dispatchEvent(inputEvent);
+
+            // Select the new last entry
+            let nodes = this.shadow.childNodes;
+            if (nodes.length - 2 >= 0) {
+                selectAllContents(nodes[nodes.length - 2].childNodes[2]);
+            }
         }
 
         getJson() {
@@ -247,6 +262,10 @@ define (function() {
                 option.appendChild(t);
                 botsElement.appendChild(option);
             }
+
+            let pauseElement = document.getElementById("pause");
+            pauseElement.disabled = false;
+
 
             // Select a random bot at first
             let selectedBot = botsElement.options[botsElement.selectedIndex].text;
