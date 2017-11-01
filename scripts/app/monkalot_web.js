@@ -11,7 +11,7 @@ define(["./monkalot", "./ui"], function (monkalot, ui) {
         username: "",
         currentBot: "",
         currentFile: "",
-        paused: false,
+        paused: true,
         ui: Object.create(ui.ui),
 
         /**
@@ -43,7 +43,7 @@ define(["./monkalot", "./ui"], function (monkalot, ui) {
          */
         onPause: function() {
             let this_ = this;
-            monkalot.pause(id_token, this.username, this.currentBot, this.paused.toString())
+            monkalot.pause(id_token, this.username, this.currentBot, (!this.paused).toString())
                 .then(function(){
                     this_.paused = !this_.paused;
                     this_.ui.setPause(this_.paused);
@@ -143,7 +143,7 @@ define(["./monkalot", "./ui"], function (monkalot, ui) {
     // Load id_token, set up site.
     let id_token = null;
 
-    let url = window.location.href;
+    let url = window.location.href.split("?")[0];
     let client_id = "2x318d1ydfpxo1jpyygahnd381o5wo";
 
     // Check if there is an id_token, if not, redirect to twitch to get it
@@ -192,6 +192,7 @@ define(["./monkalot", "./ui"], function (monkalot, ui) {
      * Redirect to get the current id_token.
      */
     function redirectToTwitch() {
+        console.log(url);
         window.location.replace("https://api.twitch.tv/kraken/oauth2/authorize?response_type=id_token%20code&client_id=" + client_id + "&redirect_uri=" + url + "&scope=openid");
     }
 

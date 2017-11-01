@@ -279,7 +279,7 @@ define (function() {
             // Select the new last entry
             let nodes = this.shadow.childNodes;
             if (nodes.length - 2 >= 0) {
-                selectAllContents(nodes[nodes.length - 2].childNodes[3]);
+                selectAllContents(nodes[nodes.length - 2].childNodes[2]);
             }
         }
 
@@ -364,8 +364,15 @@ define (function() {
          * @param bot Active bot to display
          */
         setActiveBot: function (bot) {
-            // let botName = document.getElementById("botname");
-            // botName.innerHTML = bot;
+            //When a new active bot get chosen, hide active file.
+
+            let saveButton = document.getElementById("save");
+            saveButton.className = "";
+
+            let contentWrap = document.getElementById('content-wrap');
+            while (contentWrap.hasChildNodes()) {
+                contentWrap.removeChild(contentWrap.lastChild);
+            }
         },
 
         /**
@@ -451,9 +458,9 @@ define (function() {
          * @param isPaused Whether the pause button should display pause or unpause.
          */
         setPause: function (isPaused) {
-            let pauseS = "Paused";
+            let pauseS = "Sleep";
             let pauseElement = document.getElementById("pause");
-            if (!isPaused) pauseS = "Pause";
+            if (isPaused) pauseS = "Wake up";
             pauseElement.innerHTML = pauseS;
         },
 
