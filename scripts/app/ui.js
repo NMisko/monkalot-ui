@@ -3,11 +3,14 @@
  */
 define (function() {
 
+    /**
+     * Select all text in an element.
+     * https://stackoverflow.com/a/14816523
+     * @param element
+     */
     function selectAllContents(element) {
         let range, selection;
 
-        // Select all text in new leaf.
-        // https://stackoverflow.com/a/14816523
         if (window.getSelection && document.createRange) {
             selection = window.getSelection();
             range = document.createRange();
@@ -29,36 +32,71 @@ define (function() {
         constructor() {
             super();
             this.shadow = this.attachShadow({mode: 'open'});
-            this.defaultText = "...";
+            this.defaultValue = "value";
+            this.defaultKey = "key";
         }
 
         setJson(json) {
             this.json = json;
             let this_ = this;
 
-            // If this json is an array, enable adding and removing values
-            let isArray = JsonBase.isArray(json);
+            // This is a special structure that consists of the arguments, "msg", "info" and "args_info"
+            let isInfoStructure = json['msg'] && json['info'] && json['args_info'] && JsonBase.isLeaf(JSON.stringify(json['msg']));
 
-            for (let key in json) {
+            if(isInfoStructure) {
+                let div = document.createElement('div');
+                div.style.backgroundColor = "whitesmoke";
+                div.style.border = "1px solid black";
+                div.style.padding = "10px";
 
-                let val = json[key];
-                let sVal = JSON.stringify(val);
 
-                // This value is a leaf if it starts and ends with " or is a digit
-                let isLeaf = /^".*"$/g.test(sVal) || /^[\d|.]*$/g.test(sVal);
+                let msgDiv = document.createElement('div');
+                msgDiv.appendChild(this.newLeaf('msg', JSON.stringify(json['msg'])));
+                div.appendChild(msgDiv);
 
-                let keyDiv = this.newKey(key, isArray);
-                this.shadow.appendChild(keyDiv, isLeaf);
+                let infoDiv = document.createElement('div');
 
-                if (isLeaf) {
-                    keyDiv.appendChild(this.newLeaf(key, sVal));
-                } else {
-                    keyDiv.appendChild(this.newChild(key, val));
+                let possArgs = "";
+                if (json['args_info'].length === 0) possArgs = "Possible arguments:";
+                infoDiv.innerHTML = json['info'] + possArgs;
+                infoDiv.style.fontStyle = "italic";
+                infoDiv.style.color = "E6E6E6";
+
+                let argList = document.createElement('ul');
+                argList.style.marginTop = "3px";
+                argList.style.marginBottom = "0px";
+                for (let arg in json['args_info']) {
+                    let li = document.createElement('li');
+                    li.textContent = arg + " = " + json['args_info'][arg];
+                    argList.appendChild(li);
                 }
-            }
+                infoDiv.appendChild(argList);
 
-            // Adding and removing entries is only enabled for arrays
-            if(isArray) {
+                div.appendChild(infoDiv);
+
+
+                this.shadow.appendChild(div);
+            } else {
+
+                // This will happen in most cases, simply continue displaying the tree structure
+                for (let key in json) {
+
+                    let val = json[key];
+                    let sVal = JSON.stringify(val);
+
+                    // This value is a leaf if it starts and ends with " or is a digit
+                    let isLeaf = JsonBase.isLeaf(sVal);
+
+                    let keyDiv = this.newKey(key, isLeaf, !JsonBase.isArray(json) && isLeaf);
+                    this.shadow.appendChild(keyDiv);
+
+                    if (isLeaf) {
+                        keyDiv.appendChild(this.newLeaf(key, sVal));
+                    } else {
+                        keyDiv.appendChild(this.newChild(key, val));
+                    }
+                }
+
                 // Plus button adds a new leaf
                 let plusButton = document.createElement('button');
                 plusButton.textContent = "+";
@@ -74,15 +112,17 @@ define (function() {
          * Add a new key entry
          * @param key The key value (must correspond exactly to the one in the json)
          * @param deletable Whether this entry should have a [-] Button in front, which deletes it.
+         * @param editable Whether the key should be editable
          * @returns {Element} Return the entry
          */
-        newKey(key, deletable = false) {
+        newKey(key, deletable = false, editable = false) {
             let this_ = this;
             let div = document.createElement('div');
             div.style.color = "grey";
             div.style.cursor = "default";
 
             // Add a [-] button in front of this key
+            // Make the key value editable
             if(deletable) {
                 let minusButton = document.createElement('button');
                 minusButton.textContent = "−";
@@ -96,8 +136,39 @@ define (function() {
                 div.appendChild(minusButton);
             }
 
-            let t = document.createTextNode(key + ": ");
+            let t = document.createElement('span');
+            t.innerHTML = key;
+
+            if(editable) {
+                t.contentEditable = editable;
+                t.addEventListener('input', function() {
+                    let value = this_.json[key];
+                    let count = 1;
+                    let newKey = t.textContent;
+                    while(this_.json[newKey]) {
+                        newKey = t.textContent + count;
+                        count++;
+                    }
+                    this_.json[newKey] = value;
+                    delete this_.json[key];
+                    key = newKey;
+                });
+                t.addEventListener("keydown", function(event) {
+                    // Enter adds a new entry
+                    if(event.keyCode === 13) {
+                        event.preventDefault();
+                        this_.addNewCustomLeaf();
+                        // Backspace on empty entry removes it
+                    } else if(event.keyCode === 8 && t.innerText === "") {
+                        event.preventDefault();
+                        this_.removeEntry(key);
+                    }
+                });
+            }
             div.appendChild(t);
+            let divisor = document.createTextNode(":  ");
+            div.appendChild(divisor);
+
             return div;
         }
 
@@ -143,11 +214,11 @@ define (function() {
             });
             leaf.addEventListener("keydown", function(event) {
                 // Enter adds a new entry
-                if(event.keyCode === 13 && JsonBase.isArray(this_.json)) {
+                if(event.keyCode === 13) {
                     event.preventDefault();
                     this_.addNewCustomLeaf();
                 // Backspace on empty entry removes it
-                } else if(event.keyCode === 8 && leaf.innerText === "" && JsonBase.isArray(this_.json)) {
+                } else if(event.keyCode === 8 && leaf.innerText === "") {
                     event.preventDefault();
                     this_.removeEntry(key);
                 }
@@ -163,29 +234,39 @@ define (function() {
          * @returns {Element} The new leaf
          */
         addNewCustomLeaf() {
-            let keyDiv = this.newKey(this.json.length, true);
+            let key = null;
+            if(JsonBase.isArray(this.json)) key = this.json.length;
+            else {
+                let count = "";
+                while(this.json[this.defaultKey + count]) {
+                    if (count === "") count = 1;
+                    else count++;
+                }
+                key = this.defaultKey + count;
+            }
+            let keyDiv = this.newKey(key, true, true);
             this.shadow.insertBefore(keyDiv, this.shadow.lastChild);
-            let leaf = this.newLeaf(this.json.length, this.defaultText);
+
+            let leaf = this.newLeaf(key, this.defaultValue);
             keyDiv.appendChild(leaf);
-            this.json[this.json.length] = this.defaultText;
+
+            this.json[key] = this.defaultValue;
             let inputEvent = new Event("input", {bubbles:true, composed:true});
+
             leaf.dispatchEvent(inputEvent);
             leaf.focus();
             selectAllContents(leaf);
+
             return leaf;
         }
 
         removeEntry(key) {
-            let index = this.json.indexOf(key);
-            if(index === -1) {
-                if (JsonBase.isInt(Number(key))) {
-                    index = key;
-                } else {
-                    // Programmer needs to ensure the right key is passed.
-                    throw new DOMException("No key with that value exists.");
-                }
+            if (JsonBase.isArray(this.json)) {
+                this.json.splice(key, 1);
+            } else {
+                delete this.json[key];
             }
-            this.json.splice(index, 1);
+
 
             // Remove all current entries and set the json to the new one, which builds up the tree again.
             while (this.shadow.firstChild) {
@@ -198,7 +279,7 @@ define (function() {
             // Select the new last entry
             let nodes = this.shadow.childNodes;
             if (nodes.length - 2 >= 0) {
-                selectAllContents(nodes[nodes.length - 2].childNodes[2]);
+                selectAllContents(nodes[nodes.length - 2].childNodes[3]);
             }
         }
 
@@ -206,13 +287,8 @@ define (function() {
             return this.json;
         }
 
-        /**
-         * Checks whether a value is an int.
-         */
-        static isInt(value) {
-            return !isNaN(value) &&
-                parseInt(Number(value)) === value &&
-                !isNaN(parseInt(value, 10));
+        static isLeaf(s) {
+            return /^".*"$/g.test(s) || /^[\d|.]*$/g.test(s);
         }
 
         /**
@@ -383,11 +459,12 @@ define (function() {
 
         /**
          * Return the currently entered content.
-         * @returns A string of the current content
+         * @returns string string of the current content
          */
         getContent: function() {
             let content = document.getElementById('json-content');
-            return JSON.stringify(content.getJson());
+            if(content) return JSON.stringify(content.getJson());
+            else return "";
         },
 
         /**
