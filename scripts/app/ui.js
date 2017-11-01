@@ -216,8 +216,14 @@ define (function() {
                 .replace(/\\"/g, "\"");
             leaf.contentEditable="true";
             leaf.addEventListener("input", function() {
-                // Reverse the replacements
-                this_.json[key] = JSON.parse('"' + leaf.innerText.replace(/"/g, "\\\"") + '"');
+                let value = Number(leaf.innerHTML);
+                if(isNaN(value)) {
+                    // Reverse the replacements
+                    this_.json[key] = JSON.parse('"' + leaf.innerHTML.replace(/"/g, "\\\"") + '"');
+                } else {
+                    this_.json[key] = JSON.parse(leaf.innerHTML);
+                }
+
             });
             leaf.addEventListener("keydown", function(event) {
                 // Enter adds a new entry
@@ -273,7 +279,6 @@ define (function() {
             } else {
                 delete this.json[key];
             }
-
 
             // Remove all current entries and set the json to the new one, which builds up the tree again.
             while (this.shadow.firstChild) {
