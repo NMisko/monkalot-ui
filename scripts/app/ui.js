@@ -316,6 +316,14 @@ define (function() {
             pauseElement.addEventListener("click", function () {
                 this_.controller.onPause();
             });
+
+            // Save on ctrl+s
+            document.addEventListener("keydown", function(event) {
+                if(event.keyCode === 83 && (event.metaKey || event.ctrlKey)) {
+                    event.preventDefault();
+                    this_.controller.onFileSaved(this_.getContent());
+                }
+            });
         },
 
         /**
@@ -331,6 +339,7 @@ define (function() {
          * @param bots Bots to display
          */
         setBots: function (bots) {
+            this.clean("bots");
             let botsElement = document.getElementById("bots");
             for (b of bots) {
                 let option = document.createElement("option");
@@ -419,20 +428,16 @@ define (function() {
          * @param content Content to display
          */
         setContent: function (content) {
+            let this_ = this;
+
+            this.clean("save");
             let saveButton = document.getElementById("save");
             saveButton.disabled = false;
-            let this_ = this;
             saveButton.addEventListener("click", function() {
                 this_.controller.onFileSaved(this_.getContent());
             });
 
-            // Save on ctrl+s
-            document.addEventListener("keydown", function(event) {
-                if(event.keyCode === 83 && (event.metaKey || event.ctrlKey)) {
-                    event.preventDefault();
-                    this_.controller.onFileSaved(this_.getContent());
-                }
-            });
+            this.clean("reset");
             let resetButton = document.getElementById("reset");
             resetButton.addEventListener("click", function () {
                 this_.controller.onReset();
@@ -440,6 +445,8 @@ define (function() {
 
             let j = document.createElement('json-base');
             j.id = 'json-content';
+            
+            this.clean('content-wrap');
             let contentWrap = document.getElementById('content-wrap');
             while (contentWrap.hasChildNodes()) {
                 contentWrap.removeChild(contentWrap.lastChild);
@@ -502,6 +509,17 @@ define (function() {
             let spinner = document.getElementById("spinner");
             if (toSpin) spinner.style.visibility = 'visible';
             else spinner.style.visibility = 'hidden';
+        },
+
+        /**
+         * Replaces an element with a copy of itself, removing all event listeners.
+         * @param id ID of the element
+         */
+        clean: function(id) {
+            let el = document.getElementById(id);
+            let elClone = el.cloneNode(true);
+
+            el.parentNode.replaceChild(elClone, el);
         }
     };
     return {
