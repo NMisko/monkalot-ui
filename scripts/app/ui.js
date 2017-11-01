@@ -58,7 +58,7 @@ define (function() {
 
                 let possArgs = "";
                 if (json['args_info'].length === 0) possArgs = "Possible arguments:";
-                infoDiv.innerHTML = json['info'] + possArgs;
+                infoDiv.textContent = json['info'] + possArgs;
                 infoDiv.style.fontStyle = "italic";
                 infoDiv.style.color = "E6E6E6";
 
@@ -137,7 +137,7 @@ define (function() {
             }
 
             let t = document.createElement('span');
-            t.innerHTML = key;
+            t.textContent = key;
 
             if(editable) {
                 t.contentEditable = editable;
@@ -216,12 +216,14 @@ define (function() {
                 .replace(/\\"/g, "\"");
             leaf.contentEditable="true";
             leaf.addEventListener("input", function() {
-                let value = Number(leaf.innerHTML);
+                let value = Number(leaf.textContent);
                 if(isNaN(value)) {
                     // Reverse the replacements
-                    this_.json[key] = JSON.parse('"' + leaf.innerHTML.replace(/"/g, "\\\"") + '"');
+                    this_.json[key] = JSON.parse('"' + leaf.textContent
+                        .replace(/"/g, "\\\"")
+                        + '"');
                 } else {
-                    this_.json[key] = JSON.parse(leaf.innerHTML);
+                    this_.json[key] = JSON.parse(leaf.textContent);
                 }
 
             });
@@ -408,17 +410,17 @@ define (function() {
             for (f of files) {
                 let li = document.createElement("li");
                 let button = document.createElement("a");
-                button.innerHTML = f;
+                button.textContent = f;
                 button.className = "navButton";
                 let this_ = this;
                 button.addEventListener("click", function (event) {
-                    this_.setActiveFile(event.target.innerHTML);
+                    this_.setActiveFile(event.target.textContent);
 
                     let oldFile = document.getElementById("selectedNavButton");
                     if (oldFile) oldFile.removeAttribute('id');
                     event.target.id = "selectedNavButton";
 
-                    this_.controller.onFileChosen(event.target.innerHTML);
+                    this_.controller.onFileChosen(event.target.textContent);
                 });
                 li.appendChild(button);
                 filesElement.appendChild(li);
@@ -480,7 +482,7 @@ define (function() {
             let pauseS = "Sleep";
             let pauseElement = document.getElementById("pause");
             if (isPaused) pauseS = "Wake up";
-            pauseElement.innerHTML = pauseS;
+            pauseElement.textContent = pauseS;
         },
 
         /**
@@ -502,12 +504,12 @@ define (function() {
             let resetButton = document.getElementById("reset");
             if (isSaved) {
                 resetButton.disabled = true;
-                saveButton.innerHTML = "Saved";
+                saveButton.textContent = "Saved";
                 saveButton.className = "green";
                 saveButton.disabled = true;
             } else {
                 resetButton.disabled = false;
-                saveButton.innerHTML = "Save";
+                saveButton.textContent = "Save";
                 saveButton.className = "red";
                 saveButton.disabled = false;
             }
