@@ -152,6 +152,12 @@ define (function() {
                     this_.json[newKey] = value;
                     delete this_.json[key];
                     key = newKey;
+
+                    // Index to reset leaf
+                    let index = 2;
+                    if(deletable) index = 3;
+                    div.childNodes[index].remove();
+                    div.appendChild(this_.newLeaf(key, JSON.stringify(value)));
                 });
                 t.addEventListener("keydown", function(event) {
                     // Enter adds a new entry
@@ -193,6 +199,7 @@ define (function() {
             return subDiv;
         }
 
+        // if the key changes somewhere else, it doesn't get changed here
         /**
          * Adds a new leaf
          * @param key The key (necessary to propagate input changes)
@@ -279,7 +286,7 @@ define (function() {
             // Select the new last entry
             let nodes = this.shadow.childNodes;
             if (nodes.length - 2 >= 0) {
-                selectAllContents(nodes[nodes.length - 2].childNodes[2]);
+                selectAllContents(nodes[nodes.length - 2].childNodes[3]);
             }
         }
 
@@ -445,7 +452,7 @@ define (function() {
 
             let j = document.createElement('json-base');
             j.id = 'json-content';
-            
+
             this.clean('content-wrap');
             let contentWrap = document.getElementById('content-wrap');
             while (contentWrap.hasChildNodes()) {
