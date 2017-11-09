@@ -388,6 +388,8 @@ define (function() {
          */
         setActiveBot: function (bot) {
             //When a new active bot get chosen, hide active file.
+            let botsElement = document.getElementById("bots");
+            botsElement.value = bot;
 
             let saveButton = document.getElementById("save");
             saveButton.className = "";
