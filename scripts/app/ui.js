@@ -217,7 +217,7 @@ define (function() {
             leaf.contentEditable="true";
             leaf.addEventListener("input", function() {
                 let value = Number(leaf.textContent);
-                if(isNaN(value)) {
+                if(isNaN(value) || leaf.textContent === "") {
                     // Reverse the replacements
                     this_.json[key] = JSON.parse('"' + leaf.textContent
                         .replace(/"/g, "\\\"")
