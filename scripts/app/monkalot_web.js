@@ -144,7 +144,7 @@ define(["./monkalot", "./ui"], function (monkalot, ui) {
     let id_token = null;
 
     let url = window.location.href.split("?")[0];
-    let client_id = "2x318d1ydfpxo1jpyygahnd381o5wo";
+    let client_id = "XXXXXXXXX";
 
     // Check if there is an id_token, if not, redirect to twitch to get it
     let id_t = getQueryVariable("id_token");
@@ -162,13 +162,12 @@ define(["./monkalot", "./ui"], function (monkalot, ui) {
      * @returns {*} Content of the variable or false if the query variable doesn't exist
      */
     function getQueryVariable(variable) {
-        let query = window.location.search.substring(1);
-        let vars = query.split("&");
-        for (let i=0;i<vars.length;i++) {
-            let pair = vars[i].split("=");
-            if(pair[0] === variable){return pair[1];}
+        var urlParams = new URLSearchParams(window.location.hash);
+        if (urlParams.has(variable)) {
+            return urlParams.get(variable);
+        } else {
+            return(false);
         }
-        return(false);
     }
 
     /**
@@ -192,7 +191,6 @@ define(["./monkalot", "./ui"], function (monkalot, ui) {
      * Redirect to get the current id_token.
      */
     function redirectToTwitch() {
-        console.log(url);
         window.location.replace("https://api.twitch.tv/kraken/oauth2/authorize?response_type=id_token%20code&client_id=" + client_id + "&redirect_uri=" + url + "&scope=openid");
     }
 
