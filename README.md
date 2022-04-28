@@ -1,3 +1,7 @@
+```diff
+- UNMAINTAINED - PROBABLY NOT COMPATIBLE TO CURRENT TWITCH API
+```
+
 # monkalot-ui
 Provides a web interface to manage [monkalot](http://www.github.com/nmisko/monkalot) relatively comfortably.
 
