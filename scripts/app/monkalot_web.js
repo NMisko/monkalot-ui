@@ -147,7 +147,7 @@ define(["./monkalot", "./ui"], function (monkalot, ui) {
     let client_id = "XXXXXXXXX";
 
     // Check if there is an id_token, if not, redirect to twitch to get it
-    let id_t = getQueryVariable("id_token");
+    let id_t = getQueryVariable("#access_token");
     if (!id_t) {
         redirectToTwitch();
     } else {
@@ -191,7 +191,9 @@ define(["./monkalot", "./ui"], function (monkalot, ui) {
      * Redirect to get the current id_token.
      */
     function redirectToTwitch() {
-        window.location.replace("https://api.twitch.tv/kraken/oauth2/authorize?response_type=id_token%20code&client_id=" + client_id + "&redirect_uri=" + url + "&scope=openid");
+	    const newUrl = `https://id.twitch.tv/oauth2/authorize?response_type=token&client_id=${client_id}&scope=openid&redirect_uri=${url}`
+	    console.log(`redirecting to: ${newUrl}`)
+        window.location.replace(newUrl);    
     }
 
     return {}
